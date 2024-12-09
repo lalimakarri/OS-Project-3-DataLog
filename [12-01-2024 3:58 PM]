@@ -1,0 +1,12 @@
+Thoughts so far:
+- Read through all the instructions and gained a solid understanding of what needs to be implemented to create an interactive B-tree manager.
+- Started by defining data structures for the header and node.
+- Using Java for the implementation.
+- Decided to begin the code using a HashMap to get a better understanding of the structure and the code.
+
+Plan for this session:
+- Focus on building the basic structure of the program.
+- Start implementing a menu with commands such as "create" and "open" to manage the index file.
+- Begin setting up state management to track if a file is open and its name.
+- Implement basic error handling for the commands that require an open file.
+- Main goal is just to get a good understanding about everything.
