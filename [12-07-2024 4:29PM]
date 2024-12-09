@@ -1,0 +1,14 @@
+Tasks Completed:
+- Fixed the EOF exception error that I was facing yesterday. 
+    - I had to initialize the Root block properly, even if it's empty.
+- More Testing was done.
+
+Problems Encountered:
+- My extract method is not working 100%.
+
+Next session:
+- Fix extract method to make sure it can handle all scenairos thrown at it.
+
+Thoughts:
+- I am glad I am doing extensive testing to catch all the errors.
+- I am getting better at debugging code by using print statments to see where the problems are occuring.
