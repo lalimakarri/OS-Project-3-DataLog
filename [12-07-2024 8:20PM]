@@ -1,0 +1,14 @@
+Tasks Completed:
+- Was able to debug the code and fix the extract method.
+- The problem was occuring because of incorrect handling of file formatting during extraction. 
+  - There were issues with how key-value pairs were being written to the file, resulting in incorrect output.
+
+Next session:
+- Test the program with all the functions available.
+- Do some stress testing.
+- Make sure that it works in multiple scenarios and various combinations to ensure that all fucntionlites are working.
+
+Thoughts:
+- I am very pleased with the prgress I have made thus far. 
+- Debugging took longer than I have anticipated that it would, but the outcome was good, as I got the issue resolved. 
+- I have had no new thoughts as I think I am nearning the end to this program. I just need to keep testing it further.
