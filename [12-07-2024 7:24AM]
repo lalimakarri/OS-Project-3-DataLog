@@ -1,0 +1,18 @@
+Tasks Completed:
+- Fixing Search:
+  - Needed to fix the way I was implementing B-tree Traversal:
+    - Worked on correctly traversing the B-tree nodes. The traversal now checks the keys within each node and follows the appropriate child pointers if necessary, making sure that the search algorithm works as expected.
+  - Fix Key Storage and Retrieval:
+    - Due to the B-tree implemtation having some error the way I was retriveing keys got messed up.
+    - Made sure that keys and values are written and read correctly within the B-tree blocks. Verifyed that the data is stored properly and that the correct values are retrieved during the search operation.
+
+-Encountred an EOF exception error while trying to test my code (this occured at 2:56PM)
+
+Next Steps:
+- My main next goal is now to fix the exception error in my code.
+Then...
+- Continue testing the `search` method after the fixes to ensure that it works correctly for various cases.
+- Further improvements may be needed for optimizing the B-tree traversal or handling edge cases.
+
+Thoughts:
+-Eveything is going well so far. Encounting set back here and there, but I am able to debug and move on. 
