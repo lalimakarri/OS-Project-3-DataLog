@@ -1,0 +1,22 @@
+Tasks Comleted:
+Search Functionality:
+- Implemented functionality that prompts the user to enter a key.
+- The program searches the index for the entered key.
+- If the key is found, it prints the corresponding key-value pair.
+- If the key is not found, an error message is displayed to inform the user.
+
+Thoughts so far:
+- The code is going well so far. I have been accomplishing all my goals as to what I want finsihed everytime I work on this.
+
+Things I accomplished beyond:
+Load Functionality:
+- Implemented functionality to read a file containing comma-separated key-value pairs.
+- The program inserts each key-value pair from the file into the index.
+- The expected format for the load file is: `key1:value1, key2:value2, ...`
+
+Print Functionality:
+- Added functionality to print all key-value pairs stored in the index.
+- This allows the user to view all the data in the index in a readable format.
+
+Next Session:
+- I plan on implemeting extract.
