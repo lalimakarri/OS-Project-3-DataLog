@@ -1,0 +1,516 @@
+//Lalima Karri
+//Code
+
+import java.io.*;
+import java.nio.ByteBuffer;
+import java.util.Scanner;
+
+public class BTreeIndex {
+    // Constant values for magic number, block size, and B-tree properties
+    private static final String MAGIC_NUMBER = "4337PRJ3"; // 8-byte magic number
+    private static final int BLOCK_SIZE = 512; // Size of each block in bytes
+    private static final int MIN_DEGREE = 10; // Minimal degree of the B-tree
+    private static final int MAX_KEYS = 2 * MIN_DEGREE - 1; // Max keys in a node
+    private static final int MAX_CHILDREN = 2 * MIN_DEGREE; // Max children pointers
+
+    // File and state variables for B-tree index management
+    private RandomAccessFile file;
+    private long rootBlockId = 0; // Block ID for the root node
+    private long nextBlockId = 1; // Next available block ID for new nodes
+    private Scanner scanner = new Scanner(System.in); // Scanner for user input
+
+    // Method to create a new index file
+    public void create(String filename) throws IOException {
+        File indexFile = new File(filename); // Check if the file already exists
+        if (indexFile.exists()) {
+            System.out.print("File already exists. Overwrite? (y/n): ");
+            String response = scanner.nextLine(); // Ask user if they want to overwrite
+            if (response.equalsIgnoreCase("n")) {
+                System.out.println("Create aborted.");
+                return;
+            }
+        }
+
+        file = new RandomAccessFile(filename, "rw"); // Open file in read-write mode
+        file.setLength(0); // Truncate any existing content
+
+        // Write header block with magic number and other initial values
+        writeHeaderBlock();
+
+        System.out.println("Index file created successfully.");
+    }
+
+    // Method to open an existing index file
+    public void open(String filename) throws IOException {
+        File indexFile = new File(filename); // Check if the file exists
+        if (!indexFile.exists()) {
+            System.out.println("Error: File does not exist.");
+            return;
+        }
+
+        file = new RandomAccessFile(filename, "rw"); // Open file in read-write mode
+        String magicNumber = readString(8); // Read the magic number
+        if (!magicNumber.equals(MAGIC_NUMBER)) { // Validate the magic number
+            System.out.println("Error: Invalid magic number in file.");
+            return;
+        }
+
+        rootBlockId = readLong(); // Read the root block ID
+        nextBlockId = readLong(); // Read the next available block ID
+        System.out.println("Index file opened successfully.");
+    }
+
+    // Method to insert a key-value pair into the B-tree index
+    public void insert(long key, long value) throws IOException {
+        if (file == null) { // Check if the index file is open
+            System.out.println("Error: No index file open.");
+            return;
+        }
+
+        if (rootBlockId == 0) { // If the root is empty, create a new root node
+            rootBlockId = createNode();
+            writeHeaderBlock(); // Update header with the new root block ID
+        }
+
+        BTreeNode root = readNode(rootBlockId); // Read the root node
+        if (root.numKeys == MAX_KEYS) { // If the root is full, split it
+            long newRootId = createNode(); // Create a new root node
+            BTreeNode newRoot = readNode(newRootId);
+
+            newRoot.childPointers[0] = rootBlockId; // Set the root as a child of the new root
+            splitChild(newRoot, 0, root); // Split the old root node
+
+            rootBlockId = newRootId; // Update the root block ID
+            writeHeaderBlock(); // Write the new root block ID to the header
+
+            insertNonFull(newRoot, key, value); // Insert into the new root node
+        } else {
+            insertNonFull(root, key, value); // Insert into the non-full root node
+        }
+    }
+    
+    // Method to search for a key in the B-tree index
+    public void search(long key) throws IOException {
+        if (file == null) { // Check if the index file is open
+            System.out.println("Error: No index file open.");
+            return;
+    }
+
+    // Search the tree starting from the root
+    BTreeNode result = searchTree(readNode(rootBlockId), key);
+        if (result != null) { // If the key is found in the tree
+            for (int i = 0; i < result.numKeys; i++) {
+                // Check if the current key matches the searched key
+                if (result.keys[i] == key) {
+                    System.out.println("Key: " + key + ", Value: " + result.values[i]); // Print the value
+                    return;
+                }
+            }
+        }
+
+        // If the key is not found in the tree
+        System.out.println("Error: Key not found.");
+    }
+
+    // Method to print all key-value pairs in the B-tree index
+    public void print() throws IOException {
+        if (file == null) { // Check if the index file is open
+            System.out.println("Error: No index file open.");
+            return;
+        }
+
+        if (rootBlockId == 0) { // If the tree is empty
+            System.out.println("The tree is empty.");
+            return;
+        }
+
+        // Print a message before printing the tree
+        System.out.println("Printing all key-value pairs in the B-tree:");
+        printTree(readNode(rootBlockId)); // Start printing from the root node
+    }
+
+    // Helper method to print the tree using in-order traversal
+    private void printTree(BTreeNode node) throws IOException {
+        if (node == null || node.numKeys == 0) { // Base case: return if the node is empty
+            return;
+        }
+
+        // In-order traversal: visit the left child, then the node, then the right child
+        for (int i = 0; i < node.numKeys; i++) {
+            // Safely print the left child if it exists and is valid
+            if (node.childPointers[i] != 0 && node.childPointers[i] < nextBlockId) {
+                printTree(readNode(node.childPointers[i])); // Recursive call for the left child
+            }
+
+            // Print the current key-value pair
+            System.out.println("Key: " + node.keys[i] + ", Value: " + node.values[i]);
+        }
+
+        // Safely print the rightmost child if it exists and is valid
+        if (node.childPointers[node.numKeys] != 0 && node.childPointers[node.numKeys] < nextBlockId) {
+            printTree(readNode(node.childPointers[node.numKeys])); // Recursive call for the right child
+        }
+    }
+
+    // Method to extract all key-value pairs to a file
+    public void extract() throws IOException {
+        if (file == null) { // Check if the index file is open
+            System.out.println("Error: No index file open.");
+            return;
+        }
+
+        if (rootBlockId == 0) { // If the tree is empty
+            System.out.println("The tree is empty. Nothing to extract.");
+            return;
+        }
+
+        // Ask the user for the output filename
+        System.out.print("Enter filename to save extracted data: ");
+        String outputFileName = scanner.nextLine();
+        File outputFile = new File(outputFileName);
+    
+        // If the output file already exists, prompt the user for overwriting
+        if (outputFile.exists()) {
+            System.out.print("File already exists. Overwrite? (y/n): ");
+            String response = scanner.nextLine();
+            if (response.equalsIgnoreCase("n")) {
+                System.out.println("Extract aborted.");
+                return;
+            }
+        }
+    
+        // Create a BufferedWriter to write the extracted data to the file
+        BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile));
+        extractTree(readNode(rootBlockId), writer); // Start extracting from the root node
+        writer.close(); // Close the writer
+    
+        System.out.println("Data successfully extracted to " + outputFileName);
+    }
+    
+    // Helper method to extract the tree's key-value pairs to a file using in-order traversal
+    private void extractTree(BTreeNode node, BufferedWriter writer) throws IOException {
+        if (node == null) { // Base case: return if the node is null
+            return;
+        }
+    
+        // In-order traversal to extract key-value pairs
+        for (int i = 0; i < node.numKeys; i++) {
+            // Extract left subtree if it exists
+            if (node.childPointers[i] != 0) {
+                extractTree(readNode(node.childPointers[i]), writer); // Recursive call for the left child
+            }
+    
+            // Write the current key-value pair to the file
+            writer.write(node.keys[i] + "," + node.values[i]);
+            writer.newLine(); // Add a new line after each pair
+        }
+    
+        // Extract the rightmost child if it exists
+        if (node.childPointers[node.numKeys] != 0) {
+            extractTree(readNode(node.childPointers[node.numKeys]), writer); // Recursive call for the right child
+        }
+    }
+    // Method to load data from a file
+    public void load() throws IOException {
+        // Check if file is null (no file open)
+        if (file == null) {
+            System.out.println("Error: No index file open.");
+            return;
+        }
+    
+        // Prompt the user for the filename to load data from
+        System.out.print("Enter filename to load data from: ");
+        String inputFileName = scanner.nextLine();
+        File inputFile = new File(inputFileName);
+    
+        // Check if the input file exists
+        if (!inputFile.exists()) {
+            System.out.println("Error: File does not exist.");
+            return;
+        }
+    
+        // Create a BufferedReader to read the file
+        BufferedReader reader = new BufferedReader(new FileReader(inputFile));
+        String line;
+        // Read the file line by line
+        while ((line = reader.readLine()) != null) {
+            String[] parts = line.split(",");
+            // Skip the line if it does not have exactly two parts (key, value)
+            if (parts.length != 2) {
+                System.out.println("Skipping invalid line: " + line);
+                continue;
+            }
+    
+            // Parse the key and value as long integers and insert them into the index
+            long key = Long.parseLong(parts[0].trim());
+            long value = Long.parseLong(parts[1].trim());
+            insert(key, value);
+        }
+    
+        // Close the reader after finishing the read operation
+        reader.close();
+        System.out.println("Data successfully loaded from " + inputFileName);
+    }
+    
+    // Method to write the header block to the file
+    private void writeHeaderBlock() throws IOException {
+        file.seek(0); // Move to the start of the file
+        file.write(MAGIC_NUMBER.getBytes()); // Write the magic number for identification
+        writeLong(rootBlockId); // Write the root block ID
+        writeLong(nextBlockId); // Write the next available block ID
+        file.write(new byte[BLOCK_SIZE - 24]); // Fill the remaining space in the header
+    }
+    
+    // Method to create a new node in the file
+    private long createNode() throws IOException {
+        long blockId = nextBlockId++; // Increment the next block ID
+        file.seek(blockId * BLOCK_SIZE); // Move to the position for the new block
+        file.writeLong(blockId); // Write the block ID
+        file.writeLong(0); // Write the parent ID
+        file.writeLong(0); // Write the number of keys (initially 0)
+        file.write(new byte[BLOCK_SIZE - 24]); // Fill the rest of the block
+        return blockId;
+    }
+    
+    // Method to read a node from the file
+    private BTreeNode readNode(long blockId) throws IOException {
+        file.seek(blockId * BLOCK_SIZE); // Seek to the position of the node
+        BTreeNode node = new BTreeNode();
+        node.blockId = file.readLong(); // Read the block ID
+        node.parentId = file.readLong(); // Read the parent ID
+        node.numKeys = (int) file.readLong(); // Read the number of keys
+    
+        // Read the keys and values
+        for (int i = 0; i < MAX_KEYS; i++) {
+            node.keys[i] = file.readLong();
+            node.values[i] = file.readLong();
+        }
+    
+        // Read the child pointers
+        for (int i = 0; i < MAX_CHILDREN; i++) {
+            node.childPointers[i] = file.readLong();
+        }
+    
+        return node;
+    }
+    
+    // Method to write a node to the file
+    private void writeNode(BTreeNode node) throws IOException {
+        file.seek(node.blockId * BLOCK_SIZE); // Seek to the position of the node
+        file.writeLong(node.blockId); // Write the block ID
+        file.writeLong(node.parentId); // Write the parent ID
+        file.writeLong(node.numKeys); // Write the number of keys
+    
+        // Write the keys and values
+        for (int i = 0; i < MAX_KEYS; i++) {
+            file.writeLong(node.keys[i]);
+            file.writeLong(node.values[i]);
+        }
+    
+        // Write the child pointers
+        for (int i = 0; i < MAX_CHILDREN; i++) {
+            file.writeLong(node.childPointers[i]);
+        }
+    }
+    
+    // Method to insert a key-value pair into a node that is not full
+    private void insertNonFull(BTreeNode node, long key, long value) throws IOException {
+        int i = node.numKeys - 1; // Start from the last key
+    
+        // Check if the node is a leaf (no child pointers)
+        if (node.childPointers[0] == 0) {
+            // Check for duplicate key before inserting
+            while (i >= 0 && key < node.keys[i]) {
+                i--;
+            }
+    
+            // If key already exists, abort insertion
+            if (i >= 0 && node.keys[i] == key) {
+                System.out.println("Duplicate key found. Insertion aborted.");
+                return; // Don't insert if the key already exists
+            }
+    
+            // Shift keys and values to make room for the new key-value pair
+            while (i >= 0 && key < node.keys[i]) {
+                node.keys[i + 1] = node.keys[i];
+                node.values[i + 1] = node.values[i];
+                i--;
+            }
+    
+            // Insert the new key-value pair
+            node.keys[i + 1] = key;
+            node.values[i + 1] = value;
+            node.numKeys++;
+            writeNode(node); // Write the updated node to the file
+            
+            System.out.println("Key-Value pair successfully inserted.");
+        } else {
+            // If the node is not a leaf, find the child to recurse into
+            while (i >= 0 && key < node.keys[i]) {
+                i--;
+            }
+            i++;
+    
+            // Read the child node and handle splitting if necessary
+            BTreeNode child = readNode(node.childPointers[i]);
+            if (child.numKeys == MAX_KEYS) {
+                splitChild(node, i, child); // Split the child if it is full
+                if (key > node.keys[i]) {
+                    i++;
+                }
+            }
+            insertNonFull(readNode(node.childPointers[i]), key, value); // Recurse into the child node
+        }
+    }
+    
+    // Method to split a child node when it is full
+    private void splitChild(BTreeNode parent, int index, BTreeNode child) throws IOException {
+        long newChildId = createNode(); // Create a new child node
+        BTreeNode newChild = readNode(newChildId); // Read the new child node
+    
+        newChild.parentId = parent.blockId; // Set the parent ID
+        newChild.numKeys = MIN_DEGREE - 1; // Set the number of keys in the new child
+    
+        // Copy the upper half of the keys and values to the new child
+        System.arraycopy(child.keys, MIN_DEGREE, newChild.keys, 0, MIN_DEGREE - 1);
+        System.arraycopy(child.values, MIN_DEGREE, newChild.values, 0, MIN_DEGREE - 1);
+    
+        // If the child is an internal node, copy the child pointers
+        if (child.childPointers[0] != 0) {
+            System.arraycopy(child.childPointers, MIN_DEGREE, newChild.childPointers, 0, MIN_DEGREE);
+        }
+    
+        // Update the child node's number of keys
+        child.numKeys = MIN_DEGREE - 1;
+    
+        // Insert the median into the parent node
+        System.arraycopy(parent.keys, index, parent.keys, index + 1, parent.numKeys - index);
+        System.arraycopy(parent.values, index, parent.values, index + 1, parent.numKeys - index);
+        parent.keys[index] = child.keys[MIN_DEGREE - 1];
+        parent.values[index] = child.values[MIN_DEGREE - 1];
+    
+        // Insert the new child into the parent node
+        System.arraycopy(parent.childPointers, index + 1, parent.childPointers, index + 2, parent.numKeys - index);
+        parent.childPointers[index + 1] = newChildId;
+    
+        parent.numKeys++; // Increment the number of keys in the parent
+    
+        // Write the updated nodes to the file
+        writeNode(parent);
+        writeNode(child);
+        writeNode(newChild);
+    }
+    
+    // Method to search the tree for a given key
+    private BTreeNode searchTree(BTreeNode node, long key) throws IOException {
+        int i = 0;
+        // Traverse the keys in the node to find the appropriate index
+        while (i < node.numKeys && key > node.keys[i]) {
+            i++;
+        }
+    
+        // Check if the key is found in the node
+        if (i < node.numKeys && key == node.keys[i]) {
+            return node; // Found the key
+        }
+    
+        // If the node is a leaf, return null (key not found)
+        if (node.childPointers[0] == 0) {
+            return null;
+        }
+    
+        // Recurse into the child node if the key was not found
+        return searchTree(readNode(node.childPointers[i]), key);
+    }
+    
+    // Method to write a long value to the file
+    private void writeLong(long value) throws IOException {
+        file.write(ByteBuffer.allocate(8).putLong(value).array()); // Convert to byte array and write
+    }
+    
+    // Method to read a long value from the file
+    private long readLong() throws IOException {
+        byte[] bytes = new byte[8]; // Allocate buffer for 8 bytes
+        file.read(bytes); // Read 8 bytes
+        return ByteBuffer.wrap(bytes).getLong(); // Convert byte array to long
+    }
+    
+    // Method to read a string of a specific length from the file
+    private String readString(int length) throws IOException {
+        byte[] bytes = new byte[length]; // Allocate buffer for the string
+        file.read(bytes); // Read the string bytes
+        return new String(bytes); // Convert byte array to string
+    }
+    
+    // Main method to run the program and interact with the user
+    public static void main(String[] args) throws IOException {
+        BTreeIndex btree = new BTreeIndex();
+        Scanner scanner = new Scanner(System.in);
+    
+        while (true) {
+            // Display the menu options
+            System.out.println("\nMenu:");
+            System.out.println("create - Create a new index file");
+            System.out.println("open - Open an existing index file");
+            System.out.println("insert - Insert a key-value pair");
+            System.out.println("search - Search for a key");
+            System.out.println("print - Print all key-value pairs");
+            System.out.println("extract - Extract all key-value pairs to a file");
+            System.out.println("load - Load key-value pairs from a file");
+            System.out.println("quit - Exit the program");
+            System.out.print("Enter command: ");
+            String command = scanner.nextLine().trim().toLowerCase();
+    
+            // Switch based on the user command
+            switch (command) {
+                case "create":
+                    System.out.print("Enter filename to create: ");
+                    String createFilename = scanner.nextLine();
+                    btree.create(createFilename); // Create a new index file
+                    break;
+                case "open":
+                    System.out.print("Enter filename to open: ");
+                    String openFilename = scanner.nextLine();
+                    btree.open(openFilename); // Open an existing index file
+                    break;
+                case "insert":
+                    System.out.print("Enter key (long integer): ");
+                    long key = Long.parseLong(scanner.nextLine());
+                    System.out.print("Enter value (long integer): ");
+                    long value = Long.parseLong(scanner.nextLine());
+                    btree.insert(key, value); // Insert key-value pair into the index
+                    break;
+                case "search":
+                    System.out.print("Enter key to search for: ");
+                    long searchKey = Long.parseLong(scanner.nextLine());
+                    btree.search(searchKey); // Search for a key
+                    break;
+                case "print":
+                    btree.print(); // Print all key-value pairs
+                    break;
+                case "extract":
+                    btree.extract(); // Extract all key-value pairs to a file
+                    break;
+                case "load":
+                    btree.load(); // Load key-value pairs from a file
+                    break;
+                case "quit":
+                    System.out.println("Exiting program.");
+                    System.exit(0); // Exit the program
+                default:
+                    System.out.println("Invalid command. Try again."); // Handle invalid commands
+            }
+        }
+    }
+    
+    // Inner class to represent a node in the B-Tree
+    static class BTreeNode {
+        long blockId;
+        long parentId;
+        int numKeys;
+        long[] keys = new long[MAX_KEYS];
+        long[] values = new long[MAX_KEYS];
+        long[] childPointers = new long[MAX_CHILDREN];
+    }
+    
+}
