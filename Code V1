@@ -1,0 +1,62 @@
+//This code has create, open, and quit
+import java.util.Scanner;
+
+public class IndexFileManager {
+    private static boolean isFileOpen = false; // Tracks if an index file is currently open
+    private static String currentFileName = null; // Stores the name of the currently open file
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        String command;
+
+        System.out.println("Welcome to the Index File Manager!");
+        do {
+            printMenu();
+            System.out.print("Enter a command: ");
+            command = scanner.nextLine().trim().toLowerCase(); // Case-insensitive command input
+
+            switch (command) {
+                case "create":
+                    createIndexFile(scanner);
+                    break;
+                case "open":
+                    openIndexFile(scanner);
+                    break;
+                case "quit":
+                    System.out.println("Exiting the program. Goodbye!");
+                    break;
+                default:
+                    if (isFileOpen) {
+                        System.out.println("Command '" + command + "' is not implemented yet.");
+                    } else {
+                        System.out.println("Error: No index file is currently open.");
+                    }
+            }
+        } while (!command.equals("quit"));
+
+        scanner.close();
+    }
+
+    private static void printMenu() {
+        System.out.println("\nAvailable Commands:");
+        System.out.println("  create - Create a new index file");
+        System.out.println("  open   - Open an existing index file");
+        System.out.println("  quit   - Exit the program");
+        System.out.println("Other commands will be added as the program develops.");
+    }
+
+    private static void createIndexFile(Scanner scanner) {
+        System.out.print("Enter a name for the new index file: ");
+        currentFileName = scanner.nextLine().trim();
+        isFileOpen = true;
+        System.out.println("Index file '" + currentFileName + "' created and opened.");
+    }
+
+    private static void openIndexFile(Scanner scanner) {
+        System.out.print("Enter the name of the index file to open: ");
+        currentFileName = scanner.nextLine().trim();
+        isFileOpen = true;
+        System.out.println("Index file '" + currentFileName + "' opened.");
+    }
+}
+
