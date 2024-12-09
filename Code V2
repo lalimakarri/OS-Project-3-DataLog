@@ -1,0 +1,230 @@
+import java.io.*;
+import java.util.*;
+
+public class IndexFileManager {
+
+    private static Map<Integer, Integer> index = new HashMap<>();
+    private static boolean isFileOpen = false;
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        String command;
+
+        while (true) {
+            // Menu
+            System.out.println("Commands: create, open, insert, search, load, print, extract, quit");
+            System.out.print("Enter command: ");
+            command = scanner.nextLine().trim().toLowerCase();
+
+            switch (command) {
+                case "create":
+                    createIndexFile(scanner);
+                    break;
+                case "open":
+                    openIndexFile(scanner);
+                    break;
+                case "insert":
+                    insertKeyValue(scanner);
+                    break;
+                case "search":
+                    searchKey(scanner);
+                    break;
+                case "load":
+                    loadFromFile(scanner);
+                    break;
+                case "print":
+                    printIndex();
+                    break;
+                case "extract":
+                    extractToFile(scanner);
+                    break;
+                case "quit":
+                    quitProgram();
+                    return;
+                default:
+                    System.out.println("Unknown command.");
+                    break;
+            }
+        }
+    }
+
+    // 1. Create index file
+    private static void createIndexFile(Scanner scanner) {
+        System.out.print("Enter the file name to create: ");
+        String filename = scanner.nextLine().trim();
+
+        File file = new File(filename);
+        if (file.exists()) {
+            System.out.print("File already exists. Overwrite? (y/n): ");
+            String choice = scanner.nextLine().trim().toLowerCase();
+            if (!choice.equals("y")) {
+                System.out.println("File creation canceled.");
+                return;
+            }
+        }
+
+        try (RandomAccessFile raf = new RandomAccessFile(filename, "rw")) {
+            // Write magic number (placeholder for now)
+            raf.writeBytes("INDEX123456789");
+            isFileOpen = true;
+            System.out.println("File created and header written.");
+        } catch (IOException e) {
+            System.out.println("Error creating file.");
+        }
+    }
+
+    // 2. Open index file
+    private static void openIndexFile(Scanner scanner) {
+        System.out.print("Enter the file name to open: ");
+        String filename = scanner.nextLine().trim();
+
+        File file = new File(filename);
+        if (!file.exists()) {
+            System.out.println("Error: File does not exist.");
+            return;
+        }
+
+        try (RandomAccessFile raf = new RandomAccessFile(filename, "rw")) { // Open file in rw mode to modify it
+            byte[] header = new byte[8];
+            raf.read(header);
+            String headerString = new String(header);
+
+            if (!headerString.equals("INDEX123456789")) {
+                System.out.println("Error: Invalid file format.");
+                return;
+            }
+
+            isFileOpen = true;
+            System.out.println("File opened successfully.");
+        } catch (IOException e) {
+            System.out.println("Error opening file.");
+        }
+    }
+
+    // 3. Insert key-value pair into index
+    private static void insertKeyValue(Scanner scanner) {
+        if (!isFileOpen) {
+            System.out.println("Error: No file open.");
+            return;
+        }
+
+        System.out.print("Enter key (unsigned integer): ");
+        int key = Integer.parseInt(scanner.nextLine().trim());
+        System.out.print("Enter value (unsigned integer): ");
+        int value = Integer.parseInt(scanner.nextLine().trim());
+
+        if (index.containsKey(key)) {
+            System.out.println("Error: Key already exists.");
+        } else {
+            index.put(key, value);
+            System.out.println("Key-value pair inserted.");
+
+            // Append the new key-value pair to the file
+            try (BufferedWriter bw = new BufferedWriter(new FileWriter("indexfile.txt", true))) { // Append to file
+                bw.write(key + ":" + value + "\n");
+            } catch (IOException e) {
+                System.out.println("Error appending to file.");
+            }
+        }
+    }
+
+    // 4. Search for key in index
+    private static void searchKey(Scanner scanner) {
+        if (!isFileOpen) {
+            System.out.println("Error: No file open.");
+            return;
+        }
+
+        System.out.print("Enter key to search: ");
+        int key = Integer.parseInt(scanner.nextLine().trim());
+
+        if (index.containsKey(key)) {
+            System.out.println("Key: " + key + ", Value: " + index.get(key));
+        } else {
+            System.out.println("Error: Key not found.");
+        }
+    }
+
+    // 5. Load data from a file of comma-separated key-value pairs
+    private static void loadFromFile(Scanner scanner) {
+        if (!isFileOpen) {
+            System.out.println("Error: No file open.");
+            return;
+        }
+
+        System.out.print("Enter the filename to load: ");
+        String filename = scanner.nextLine().trim();
+
+        try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] pairs = line.split(",");
+                for (String pair : pairs) {
+                    String[] keyValue = pair.trim().split(":");
+                    int key = Integer.parseInt(keyValue[0].trim());
+                    int value = Integer.parseInt(keyValue[1].trim());
+                    index.put(key, value);
+                }
+            }
+            System.out.println("Data loaded successfully.");
+        } catch (IOException e) {
+            System.out.println("Error loading file.");
+        }
+    }
+
+    // 6. Print all key-value pairs in the index
+    private static void printIndex() {
+        if (!isFileOpen) {
+            System.out.println("Error: No file open.");
+            return;
+        }
+
+        if (index.isEmpty()) {
+            System.out.println("No data in the index.");
+        } else {
+            System.out.println("Index contents:");
+            for (Map.Entry<Integer, Integer> entry : index.entrySet()) {
+                System.out.println("Key: " + entry.getKey() + ", Value: " + entry.getValue());
+            }
+        }
+    }
+
+    // 7. Extract key-value pairs to a file
+    private static void extractToFile(Scanner scanner) {
+        if (!isFileOpen) {
+            System.out.println("Error: No file open.");
+            return;
+        }
+
+        System.out.print("Enter the file name to save the data: ");
+        String filename = scanner.nextLine().trim();
+
+        File file = new File(filename);
+        if (file.exists()) {
+            System.out.print("File already exists. Overwrite? (y/n): ");
+            String choice = scanner.nextLine().trim().toLowerCase();
+            if (!choice.equals("y")) {
+                System.out.println("Extraction canceled.");
+                return;
+            }
+        }
+
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(filename))) {
+            for (Map.Entry<Integer, Integer> entry : index.entrySet()) {
+                bw.write(entry.getKey() + ":" + entry.getValue());
+                if (entry.getKey() != index.size()) {
+                    bw.write(", ");
+                }
+            }
+            System.out.println("Data successfully extracted to file.");
+        } catch (IOException e) {
+            System.out.println("Error extracting data.");
+        }
+    }
+
+    // 8. Quit the program
+    private static void quitProgram() {
+        System.out.println("Exiting program...");
+        System.exit(0);
+    }
+}
