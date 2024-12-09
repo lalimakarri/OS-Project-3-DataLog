@@ -1,0 +1,15 @@
+Tasks Completed/What I wanted to accomplish:
+- Changed from hashmap logic to B-tree logic.
+- Currently debugging to see where the problems are arising as print and search methods are not working properly. 
+
+Problems facing:
+- The print and search methods are not working as expected.
+
+Next session:
+- Fix atleast the search method so it starts wokring again.
+
+Thoughts:
+- Little bit of a slower day as I need to debug where the problems are coming from.
+- A good day, as I accomplished the most important thing, converting the code to B-Tree Logic.
+
+
