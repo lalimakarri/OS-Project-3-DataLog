@@ -1,0 +1,17 @@
+Thoughts so far:
+- Created a basic menu with commands: create, open, and quit.
+- Made commands case-insensitive (e.g., "CREATE" or "create" both work).
+- Added state management to track whether an index file is open and the file's name.
+- Implemented the following commands:
+  - create: Allows the user to create and open a new file.
+  - open: Allows the user to open an existing file.
+  - quit: Exits the program.
+- Added error handling for commands that require an open file.
+
+Plan for this session:
+- Continue to expand on the menu system and add additional commands related to file management.
+- Implement functionality for file creation and opening, ensuring state management is maintained.
+- Test the implemented commands and error handling for potential bugs.
+
+- Everything that I wanted to accomplish today was accomplished.
+- Next session I am planning on implementing create, open, and insert.
