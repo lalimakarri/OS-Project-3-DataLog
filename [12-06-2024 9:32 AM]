@@ -1,0 +1,16 @@
+Tasks Completed/What I wanted to accomplish: 
+- Did some testing to evaluate the functionality of the current code.
+- Focused on identifying areas that work as expected and areas that need further improvements.
+
+Modifications Made:
+- Changed the file mode in the `openIndexFile()` function to "rw" (read-write).
+- Modified the `insertKeyValue()` function to append key-value pairs to the file.
+- Fixed the data formatting issue when writing key-value pairs to a file in the `extractToFile()` function.
+- Error Handling.
+
+Thoughts so far:
+- I am getting a better understanding on how I am going to do this in B-Tree format. I am able to visual what should be happening. 
+
+Next Session:
+- I plan on writing the code so that it adheres to B-tree format and it follows the requirements given by the professor.
+
