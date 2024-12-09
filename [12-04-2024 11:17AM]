@@ -1,0 +1,17 @@
+# Tasks Completed
+Insert:
+- Implemented functionality to insert a key-value pair into the index file.
+  - The program prompts the user to input a key and value.
+  - If the key already exists in the file, an error message is displayed to inform the user that the key cannot be duplicated.
+  - If the key is unique, the key-value pair is successfully inserted into the file.
+
+Code:
+- After I added the Insert logic, I went back and enhanced the code to follow an Hashmap. The requirments are to follow a B-tree, but I am trying to understand how the code should fucntion and work before implementing the B-tree Logic.
+  -I am doing this becuase I am able to get a better grasp on how everything should layout. 
+
+# Thoughts So Far:
+- The project is progressing well. I implemted code to insert and I polished up the code for open, quit and create.
+- I encountered no major issues with the functionality for creating new files, opening existing files, or inserting key-value pairs.
+
+# Next Session:
+- I am going to implement code for search.
