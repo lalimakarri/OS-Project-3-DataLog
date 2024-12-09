@@ -14,3 +14,7 @@ This will start the program.
 Type in 'quit' to exit the program 
 
 The code consists of one file called BTreeIndex that was coded in the Java language.
+
+
+IMPORTANT:
+I have been trying to get the Zip folder onto computer but it hasent been working. 
